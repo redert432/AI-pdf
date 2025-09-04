@@ -1,5 +1,5 @@
 {
-  "name": "موريا AI - محول الصور إلى PDF",
-  "description": "A free, client-side tool to convert JPG, PNG, and other images into a single PDF document. Upload images, and download your PDF instantly. All processing is done in your browser for privacy. تم تصميم هذه الأداة لتحويل الصور إلى ملف PDF واحد بسهولة. جميع العمليات تتم في متصفحك للحفاظ على خصوصيتك.",
+  "name": "موريا AI - أدوات الذكاء الاصطناعي",
+  "description": "منصة شاملة تقدم مجموعة من أدوات الذكاء الاصطناعي، بما في ذلك محول صور إلى PDF متقدم، ومحلل مستندات ذكي، ومحادثة مباشرة مع Gemini AI. تم تصميمها لتكون سريعة وآمنة وسهلة الاستخدام.",
   "requestFramePermissions": []
 }
