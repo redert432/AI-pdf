@@ -1,0 +1,5 @@
+{
+  "name": "Image to PDF Converter - محول الصور إلى PDF",
+  "description": "A free, client-side tool to convert JPG, PNG, and other images into a single PDF document. Upload images, and download your PDF instantly. All processing is done in your browser for privacy. تم تصميم هذه الأداة لتحويل الصور إلى ملف PDF واحد بسهولة. جميع العمليات تتم في متصفحك للحفاظ على خصوصيتك.",
+  "requestFramePermissions": []
+}
