@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import type { UploadedImage } from './types';
 
@@ -228,8 +227,11 @@ const App: React.FC = () => {
       
       <header className="w-full max-w-6xl text-center">
         <h1 className="text-4xl sm:text-5xl font-bold text-slate-800">
-          محول الصور إلى <span className="text-blue-600">PDF</span>
+          موريا <span className="text-blue-600">AI</span>
         </h1>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-semibold text-slate-700">
+          محول الصور إلى PDF
+        </h2>
         <p className="mt-4 text-lg text-slate-600">
           حوّل صورك بسهولة إلى ملف PDF واحد - مجانًا وعلى جهازك مباشرة.
         </p>
@@ -292,8 +294,8 @@ const App: React.FC = () => {
       </main>
 
       <footer className="w-full max-w-6xl text-center text-slate-500 text-sm">
-        <p>تم إنشاؤه بواسطة مهندس واجهات أمامية خبير.</p>
-        <p>&copy; {new Date().getFullYear()} جميع الحقوق محفوظة.</p>
+        <p>تم إنشاؤه بواسطة موريا AI.</p>
+        <p>&copy; {new Date().getFullYear()} موريا AI. جميع الحقوق محفوظة.</p>
       </footer>
     </div>
   );
