@@ -495,9 +495,15 @@ const AIQiyasExpertTool = ({ chatHistory, onUpdate }) => {
         Your tone must always be encouraging, patient, and academic. All responses MUST be in Arabic. When solving a problem, first provide the final answer, then the detailed explanation.`;
 
         try {
+            const history = chatHistory.map(msg => ({
+                role: msg.role,
+                parts: [{ text: msg.text }]
+            }));
+            const contents = [...history, { role: 'user', parts: [{ text: trimmedInput }] }];
+
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: trimmedInput,
+                contents: contents,
                 config: {
                     systemInstruction: systemInstruction,
                 },
@@ -591,9 +597,15 @@ const AIMentalHealthGuideTool = ({ chatHistory, onUpdate }) => {
         Your methods should be based on established wellness practices like Cognitive Behavioral Therapy (CBT) principles (e.g., identifying negative thought patterns), mindfulness, and gratitude. Your tone should always be empathetic, patient, non-judgmental, and encouraging. Respond in Arabic.`;
 
         try {
+            const history = chatHistory.map(msg => ({
+                role: msg.role,
+                parts: [{ text: msg.text }]
+            }));
+            const contents = [...history, { role: 'user', parts: [{ text: trimmedInput }] }];
+            
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: trimmedInput,
+                contents: contents,
                 config: {
                     systemInstruction: systemInstruction,
                 },
@@ -741,9 +753,15 @@ const AIChatTool = ({ chatHistory, onUpdate }) => {
         setLoading(true);
 
         try {
+            const history = chatHistory.map(msg => ({
+                role: msg.role,
+                parts: [{ text: msg.text }]
+            }));
+            const contents = [...history, { role: 'user', parts: [{ text: trimmedInput }] }];
+
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: trimmedInput,
+                contents: contents,
                 config: {
                     tools: [{ googleSearch: {} }],
                 },
@@ -847,9 +865,15 @@ const AIChatProTool = ({ chatHistory, onUpdate }) => {
         setLoading(true);
 
         try {
+            const history = chatHistory.map(msg => ({
+                role: msg.role,
+                parts: [{ text: msg.text }]
+            }));
+            const contents = [...history, { role: 'user', parts: [{ text: trimmedInput }] }];
+            
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: trimmedInput,
+                contents: contents,
                 config: {
                     systemInstruction: "You are Moria AI Pro, a highly advanced, multi-disciplinary expert AI. Your goal is to provide comprehensive, insightful, and expertly structured answers. You can analyze complex topics, generate creative content, and provide detailed explanations. Do not provide shallow answers.",
                 },
@@ -1026,7 +1050,10 @@ const ChatRoom = ({ username }) => {
         try {
             // AI Moderation
             const moderationPrompt = `You are a content moderator for a public chat. Analyze the following message. If it contains hate speech, harassment, threats, scams, or inappropriate language, respond with 'VIOLATION'. Otherwise, respond with 'OK'. Message: "${trimmedMessage}"`;
-            const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: moderationPrompt });
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: [{ role: 'user', parts: [{ text: moderationPrompt }] }]
+            });
             const decision = response.text.trim().toUpperCase();
             
             if (decision.includes('VIOLATION')) {
@@ -1310,7 +1337,10 @@ const ChatComponent = ({ streamId, username, isStreamer = false }) => {
 
         try {
             const moderationPrompt = `You are a strict live stream chat moderator. Your goal is to keep the chat safe and friendly. Analyze the following message. If it contains hate speech, harassment, spam, personal attacks, insults, or is otherwise inappropriate, respond ONLY with 'VIOLATION'. Otherwise, respond ONLY with 'OK'. Message: "${trimmedMessage}"`;
-            const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: moderationPrompt });
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: [{ role: 'user', parts: [{ text: moderationPrompt }] }]
+            });
             const decision = response.text.trim().toUpperCase();
 
             if (decision.includes('VIOLATION')) {
@@ -1844,7 +1874,7 @@ const AIPresentationGenerator = () => {
         try {
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: prompt,
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 config: {
                     responseMimeType: "application/json",
                     responseSchema: {
@@ -1940,16 +1970,18 @@ const AIChartGenerator = () => {
     setError('');
     setChartData(null);
     
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `
+    const requestPrompt = `
           Based on the user's request, generate JSON data for a chart. 
           The user wants: "${prompt}".
           Determine the best chart type (bar, line, or pie).
           Extract labels and numerical data.
           Create one or more datasets.
-        `,
+        `;
+
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: 'user', parts: [{ text: requestPrompt }] }],
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -2128,7 +2160,7 @@ const AICVGenerator = ({ cvData, onUpdate }) => {
         try {
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: prompt,
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
             });
             setGeneratedCv(response.text);
         } catch (err) {
@@ -2243,7 +2275,7 @@ const AILetterGenerator = ({
         try {
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: prompt,
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
             });
             setGeneratedLetter(response.text);
         } catch (err) {
@@ -2307,7 +2339,7 @@ const AIDeviceExpert = () => {
         try {
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: prompt,
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
             });
             setSolution(response.text);
         } catch (err) {
@@ -2365,7 +2397,7 @@ const AIProductExpert = () => {
         try {
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: prompt,
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
                  config: {
                     tools: [{ googleSearch: {} }],
                 },
@@ -2488,461 +2520,4 @@ const AITradingExpert = ({ balance, tradeHistory, onUpdate }) => {
                     {selectedAsset ? <PriceChart asset={selectedAsset} /> : <div className="h-full flex items-center justify-center">اختر أصلاً لعرض الرسم البياني</div>}
                 </div>
                 <div className="space-y-4">
-                    <div className="p-4 bg-white dark:bg-gray-700/50 rounded-lg shadow">
-                        <h3 className="font-bold text-lg">الرصيد</h3>
-                        <p className="text-2xl font-mono text-primary-600 dark:text-primary-400">${balance.toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 bg-white dark:bg-gray-700/50 rounded-lg shadow space-y-3">
-                         <select value={selectedAsset?.id} onChange={e => setSelectedAsset(assets.find(a => a.id === e.target.value) || null)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-2 rounded-md">
-                            {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                        </select>
-                        <input type="number" value={tradeAmount} onChange={e => setTradeAmount(Number(e.target.value))} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-2 rounded-md" />
-                        <div className="flex gap-2">
-                            <button onClick={() => setTradeDirection('up')} className={`w-full p-3 rounded-md font-bold ${tradeDirection === 'up' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>صعود</button>
-                            <button onClick={() => setTradeDirection('down')} className={`w-full p-3 rounded-md font-bold ${tradeDirection === 'down' ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`}>هبوط</button>
-                        </div>
-                        <button onClick={handleTrade} disabled={!selectedAsset || balance < tradeAmount} className="w-full bg-primary-600 text-white font-bold p-3 rounded-md disabled:bg-gray-400">
-                            بدء الصفقة
-                        </button>
-                    </div>
-                </div>
-            </div>
-             <div className="mt-8">
-                <h3 className={`text-xl font-bold mb-4 ${themedStyles.toolContainer.title}`}>سجل الصفقات</h3>
-                <div className="max-h-60 overflow-y-auto">
-                    <table className="w-full text-sm text-left">
-                         <thead className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-400 uppercase">
-                            <tr>
-                                <th className="px-6 py-3">الأصل</th><th className="px-6 py-3">المبلغ</th><th className="px-6 py-3">الاتجاه</th><th className="px-6 py-3">سعر الفتح</th><th className="px-6 py-3">سعر الإغلاق</th><th className="px-6 py-3">الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {[...tradeHistory, ...activeTrades].reverse().map(trade => (
-                                <tr key={trade.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                    <td className="px-6 py-4">{trade.assetName}</td>
-                                    <td className="px-6 py-4">${trade.amount}</td>
-                                    <td className="px-6 py-4">{trade.direction === 'up' ? '▲' : '▼'}</td>
-                                    <td className="px-6 py-4">{trade.openPrice.toFixed(2)}</td>
-                                    <td className="px-6 py-4">{trade.closePrice?.toFixed(2) || '-'}</td>
-                                    <td className={`px-6 py-4 font-bold ${trade.status === 'won' ? 'text-green-500' : trade.status === 'lost' ? 'text-red-500' : 'text-yellow-500'}`}>
-                                        {trade.status}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </ToolContainer>
-    );
-};
-
-const PriceChart = ({ asset }: { asset: Asset }) => {
-    const width = 500;
-    const height = 300;
-    const padding = 20;
-    const data = asset.priceHistory;
-
-    const max = Math.max(...data);
-    const min = Math.min(...data);
-    const xScale = (width - 2 * padding) / (data.length - 1);
-    const yScale = (height - 2 * padding) / (max - min);
-
-    const path = data.map((price, i) => {
-        const x = padding + i * xScale;
-        const y = height - padding - (price - min) * yScale;
-        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-
-    const lastPrice = data[data.length - 1];
-    const firstPrice = data[0];
-    const color = lastPrice >= firstPrice ? 'stroke-green-500' : 'stroke-red-500';
-
-    return (
-         <div className="relative">
-            <h3 className="text-2xl font-bold">{asset.name} - ${asset.price.toFixed(2)}</h3>
-            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
-                <path d={path} fill="none" className={color} strokeWidth="2" />
-            </svg>
-        </div>
-    )
-};
-
-const AITouristGuideTool = () => {
-    const [destination, setDestination] = useState('');
-    const [interests, setInterests] = useState('');
-    const [result, setResult] = useState('');
-    const [sources, setSources] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    const getPlan = async () => {
-        if (!destination) {
-            setError('يرجى تحديد وجهة السفر.');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        setResult('');
-        setSources([]);
-
-        const prompt = `
-            أنت خبير سياحة وسفر. قم بإنشاء خطة سياحية لرحلة إلى "${destination}".
-            الاهتمامات: "${interests || 'معالم سياحية، ثقافة، طعام محلي'}".
-            يجب أن تتضمن الخطة:
-            1. اقتراحات لأفضل الفنادق مع متوسط أسعار.
-            2. اقتراحات لخطوط طيران معقولة التكلفة.
-            3. جدول يومي مقترح لأهم الأنشطة والمعالم.
-            4. نصائح عامة حول الوجهة.
-            استخدم بحث جوجل للحصول على معلومات وأسعار حديثة وحقيقية.
-        `;
-
-        try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: prompt,
-                config: {
-                    tools: [{ googleSearch: {} }],
-                },
-            });
-            setResult(response.text);
-            setSources(response.candidates?.[0]?.groundingMetadata?.groundingChunks || []);
-        } catch (err) {
-            console.error(err);
-            setError('حدث خطأ أثناء إنشاء الخطة السياحية.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <ToolContainer title="خبير السياحة AI" icon={<AITouristGuideIcon />}>
-            <div className="space-y-4">
-                <input type="text" value={destination} onChange={e => setDestination(e.target.value)} placeholder="إلى أين تريد أن تذهب؟ (مثال: باريس، فرنسا)" className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-3 rounded-md" />
-                <input type="text" value={interests} onChange={e => setInterests(e.target.value)} placeholder="ما هي اهتماماتك؟ (اختياري)" className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-3 rounded-md" />
-                <button onClick={getPlan} disabled={loading} className={`w-full ${themedStyles.button.primary} font-bold py-3 rounded-md transition disabled:bg-gray-400 dark:disabled:bg-gray-500 flex items-center justify-center`}>
-                    {loading ? <Spinner /> : 'خطط لرحلتي'}
-                </button>
-            </div>
-             {error && <p className="text-red-500 mt-4">{error}</p>}
-            <div className="mt-6 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-6 min-h-[300px] prose dark:prose-invert max-w-none">
-                {result ? (
-                    <div>
-                         <div dangerouslySetInnerHTML={{ __html: (window as any).marked.parse(result) }} />
-                         {sources.length > 0 && (
-                             <div className="mt-6 border-t border-gray-300 dark:border-gray-600 pt-4">
-                                <h4 className="text-lg font-bold mb-2 text-gray-700 dark:text-gray-300">المصادر:</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {sources.map((source, i) => (
-                                        <li key={i}>
-                                            <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className={`${themedStyles.misc.link}`} title={source.web.title}>
-                                                {source.web.title}
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                             </div>
-                         )}
-                    </div>
-                ) : (
-                     <p className="text-gray-500 dark:text-gray-400">ستظهر خطة رحلتك هنا.</p>
-                )}
-            </div>
-        </ToolContainer>
-    );
-};
-
-const AIVideoMontageTool = () => {
-    const [prompt, setPrompt] = useState('');
-    const [videoUrl, setVideoUrl] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [loadingMessage, setLoadingMessage] = useState('');
-
-    const generateVideo = async () => {
-        if (!prompt.trim()) return;
-        setLoading(true);
-        setVideoUrl('');
-        setLoadingMessage('بدء عملية إنشاء الفيديو...');
-
-        try {
-            let operation: Operation<GenerateVideosResponse> = await ai.models.generateVideos({
-                model: 'veo-2.0-generate-001',
-                prompt: prompt,
-                config: { numberOfVideos: 1 }
-            });
-
-            setLoadingMessage('جاري معالجة الفيديو، قد يستغرق هذا بضع دقائق...');
-            while (!operation.done) {
-                await new Promise(resolve => setTimeout(resolve, 10000));
-                operation = await ai.operations.getVideosOperation({ operation: operation });
-            }
-
-            const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-            if (downloadLink) {
-                // In a real scenario, you'd fetch with API key, but for this component we'll just set the URL
-                // Note: Direct fetching requires server-side handling of the API key for security.
-                // We will just display a message and the conceptual link.
-                setVideoUrl(`${downloadLink}&key=YOUR_API_KEY`); // Placeholder for demonstration
-                setLoadingMessage('اكتمل إنشاء الفيديو!');
-            } else {
-                 throw new Error("لم يتم العثور على رابط الفيديو.");
-            }
-
-        } catch (err) {
-            console.error(err);
-            setLoadingMessage('حدث خطأ أثناء إنشاء الفيديو.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <ToolContainer title="مونتاج الفيديو الذكي" icon={<AIVideoMontageIcon />}>
-            <div className="space-y-4">
-                <textarea
-                    value={prompt}
-                    onChange={e => setPrompt(e.target.value)}
-                    placeholder="اكتب وصفًا للمشهد الذي تريد إنشاءه (مثال: مجرة تدور ببطء مع نجوم متلألئة)"
-                    rows={4}
-                    className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-3 rounded-md"
-                ></textarea>
-                <button onClick={generateVideo} disabled={loading} className={`w-full ${themedStyles.button.primary} font-bold py-3 rounded-md disabled:bg-gray-400 flex items-center justify-center`}>
-                    {loading ? <Spinner /> : 'أنشئ الفيديو'}
-                </button>
-            </div>
-            <div className="mt-6 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-6 min-h-[300px] flex items-center justify-center">
-                {loading && <p className="text-gray-600 dark:text-gray-300">{loadingMessage}</p>}
-                {videoUrl && (
-                    <div>
-                        <p className="mb-4 text-center">تم إنشاء الفيديو بنجاح. في تطبيق حقيقي، سيتم عرض الفيديو هنا.</p>
-                        <a href={videoUrl} target="_blank" rel="noopener noreferrer" className={`${themedStyles.misc.link} text-center block`}>
-                            رابط الفيديو (يتطلب مفتاح API للوصول)
-                        </a>
-                    </div>
-                )}
-                 {!loading && !videoUrl && <p className="text-gray-500 dark:text-gray-400">سيظهر الفيديو الذي تم إنشاؤه هنا.</p>}
-            </div>
-        </ToolContainer>
-    );
-};
-
-const AIImageEditorTool = () => {
-    const [originalImage, setOriginalImage] = useState<string | null>(null);
-    const [editedImage, setEditedImage] = useState<string | null>(null);
-    const [prompt, setPrompt] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setOriginalImage(event.target?.result as string);
-                setEditedImage(null); // Clear previous edit
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    
-    const editImage = async () => {
-        if (!originalImage || !prompt.trim()) {
-            setError('يرجى تحميل صورة وكتابة طلب تعديل.');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        
-        try {
-            const base64Data = originalImage.split(',')[1];
-            const mimeType = originalImage.split(';')[0].split(':')[1];
-            
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-image-preview',
-                contents: {
-                    parts: [
-                        { inlineData: { data: base64Data, mimeType: mimeType } },
-                        { text: prompt },
-                    ],
-                },
-                config: { responseModalities: [Modality.IMAGE, Modality.TEXT] },
-            });
-            
-            const imagePart = response.candidates?.[0]?.content?.parts.find(part => part.inlineData);
-            if (imagePart && imagePart.inlineData) {
-                const newBase64 = imagePart.inlineData.data;
-                const newMimeType = imagePart.inlineData.mimeType;
-                setEditedImage(`data:${newMimeType};base64,${newBase64}`);
-            } else {
-                 throw new Error("لم يتمكن الذكاء الاصطناعي من تعديل الصورة.");
-            }
-
-        } catch (err) {
-            console.error(err);
-            setError('حدث خطأ أثناء تعديل الصورة.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <ToolContainer title="محرر الصور الذكي" icon={<AIImageEditorIcon />}>
-            <div className="grid md:grid-cols-2 gap-8">
-                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                    <input type="file" accept="image/*" onChange={handleImageUpload} ref={fileInputRef} className="hidden" />
-                    {originalImage ? (
-                        <img src={originalImage} alt="Original" className="max-h-80 rounded-lg" />
-                    ) : (
-                        <button onClick={() => fileInputRef.current?.click()} className={`${themedStyles.button.secondary} p-4 rounded-lg`}>
-                            اختر صورة للبدء
-                        </button>
-                    )}
-                </div>
-                 <div className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                    {loading && <Spinner />}
-                    {editedImage && !loading && (
-                         <img src={editedImage} alt="Edited" className="max-h-80 rounded-lg" />
-                    )}
-                    {!editedImage && !loading && <p className="text-gray-500 dark:text-gray-400">ستظهر الصورة المعدلة هنا.</p>}
-                </div>
-            </div>
-             <div className="mt-6 space-y-4">
-                 <textarea
-                     value={prompt}
-                     onChange={e => setPrompt(e.target.value)}
-                     placeholder="صف التعديل الذي تريده (مثال: أضف قبعة سانتا على رأس الشخص)"
-                     rows={3}
-                     className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-3 rounded-md"
-                     disabled={!originalImage}
-                 />
-                 <button onClick={editImage} disabled={loading || !originalImage || !prompt} className={`w-full ${themedStyles.button.primary} font-bold py-3 rounded-md disabled:bg-gray-400 flex items-center justify-center`}>
-                     {loading ? <Spinner /> : 'عدّل الصورة'}
-                 </button>
-                 {error && <p className="text-red-500 text-center mt-2">{error}</p>}
-             </div>
-        </ToolContainer>
-    );
-};
-
-const AIRestaurantExpertTool = () => {
-    const [query, setQuery] = useState('');
-    const [result, setResult] = useState('');
-    const [sources, setSources] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    const getRecommendations = async () => {
-        if (!query) {
-            setError('يرجى كتابة طلبك.');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        setResult('');
-        setSources([]);
-
-        const prompt = `
-            أنت خبير عالمي في المطاعم والمأكولات. بناءً على طلب المستخدم، قدم توصيات مفصلة.
-            الطلب: "${query}".
-            يجب أن تتضمن الإجابة:
-            1. أسماء مطاعم مقترحة مع وصف موجز.
-            2. أشهر الأطباق التي يجب تجربتها.
-            3. متوسط الأسعار إن أمكن.
-            استخدم بحث جوجل للحصول على معلومات دقيقة وحديثة.
-        `;
-
-        try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: prompt,
-                config: {
-                    tools: [{ googleSearch: {} }],
-                },
-            });
-            setResult(response.text);
-            setSources(response.candidates?.[0]?.groundingMetadata?.groundingChunks || []);
-        } catch (err) {
-            console.error(err);
-            setError('حدث خطأ أثناء البحث عن توصيات.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <ToolContainer title="خبير المطاعم الذكي" icon={<AIRestaurantExpertIcon />}>
-            <div className="flex gap-2">
-                <input
-                    type="text"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="اكتب طلبك... مثال: أفضل مطاعم البرجر في الرياض"
-                    className="flex-grow bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-3 rounded-md"
-                />
-                <button onClick={getRecommendations} disabled={loading} className={`${themedStyles.button.primary} font-bold py-2 px-6 rounded-md transition disabled:bg-gray-400 dark:disabled:bg-gray-500 flex items-center justify-center`}>
-                    {loading ? <Spinner /> : 'ابحث'}
-                </button>
-            </div>
-            {error && <p className="text-red-500 mt-4">{error}</p>}
-            <div className="mt-6 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-6 min-h-[400px] prose dark:prose-invert max-w-none">
-                 {result ? (
-                    <div>
-                         <div dangerouslySetInnerHTML={{ __html: (window as any).marked.parse(result) }} />
-                         {sources.length > 0 && (
-                             <div className="mt-6 border-t border-gray-300 dark:border-gray-600 pt-4">
-                                <h4 className="text-lg font-bold mb-2 text-gray-700 dark:text-gray-300">المصادر:</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {sources.map((source, i) => (
-                                        <li key={i}>
-                                            <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className={`${themedStyles.misc.link}`} title={source.web.title}>
-                                                {source.web.title}
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                             </div>
-                         )}
-                    </div>
-                ) : (
-                     <p className="text-gray-500 dark:text-gray-400">ستظهر توصيات المطاعم هنا.</p>
-                )}
-            </div>
-        </ToolContainer>
-    );
-};
-
-const SpreadsheetToolbar = ({
-    selectedCell,
-    cellStyle,
-    formulaInput,
-    onFormulaChange,
-    onFormulaCommit,
-    onStyleChange
-}) => {
-    const safeCellStyle = cellStyle || {};
-    return (
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-md">
-            <span className="font-mono text-sm p-2 bg-gray-200 dark:bg-gray-600 rounded-md">
-                {String.fromCharCode('A'.charCodeAt(0) + selectedCell.col)}{selectedCell.row + 1}
-            </span>
-            <span className="font-mono text-lg text-gray-400 dark:text-gray-500">ƒx</span>
-            <input
-                type="text"
-                value={formulaInput}
-                onChange={onFormulaChange}
-                onBlur={onFormulaCommit}
-                onKeyPress={e => e.key === 'Enter' && onFormulaCommit()}
-                className="flex-grow font-mono bg-white dark:bg-gray-800 p-1 rounded-sm border border-gray-300 dark:border-gray-600"
-                aria-label="Formula Input"
-            />
-            <button onClick={() => onStyleChange({ bold: !safeCellStyle.bold })} className={`p-2 rounded ${safeCellStyle.bold ? 'bg-primary-300 dark:bg-primary-700' : ''}`} aria-label="Bold"><strong>B</strong></button>
-            <button onClick={() => onStyleChange({ italic: !safeCellStyle.italic })} className={`p-2 rounded ${safeCellStyle.italic ? 'bg-primary-300 dark:bg-primary-700' : ''}`} aria-label="Italic"><em>I</em></button>
-{/* FIX: Correctly close the component and its tags. The file was truncated. */}
-            <input type="color" value={safeCellStyle.backgroundColor || '#ffffff'} onChange={e => onStyleChange({ backgroundColor: e.target.value })} aria-label="Cell background color" />
-        </div>
-    );
-};
-
-// FIX: Add default export to fix module import error in index.tsx
-export default App;
+                    <div className="p
