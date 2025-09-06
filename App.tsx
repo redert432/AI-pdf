@@ -14,6 +14,8 @@ import { QURAN_DATA } from './quranData';
 
 // Helper to get jsPDF. It's on the window object from the script tag.
 const { jsPDF } = (window as any).jspdf;
+const { marked } = (window as any);
+
 
 // --- ICONS ---
 const Icon = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => <span className={`w-6 h-6 flex items-center justify-center ${className}`}>{children}</span>;
@@ -43,7 +45,7 @@ const AISpreadsheetExpertIcon = () => <Icon>🧾</Icon>;
 const AIArtistIcon = () => <Icon>🖌️</Icon>;
 const AISecurityExpertIcon = () => <Icon>🛡️</Icon>;
 const AIGovernmentProtocolIcon = () => <Icon>🏛️</Icon>;
-const AIInternetExpertIcon = () => <Icon>🚀</Icon>;
+const AIInternetExpertIcon = () => <Icon>🌐</Icon>;
 const AICybersecurityOpsIcon = () => <Icon>🛂</Icon>;
 const AI3DModelerIcon = () => <Icon>🧊</Icon>;
 const AIMovieExpertIcon = () => <Icon>🎬</Icon>;
@@ -55,7 +57,6 @@ const AIQiyasExpertIcon = () => <Icon>🎓</Icon>;
 const SunIcon = () => <Icon>☀️</Icon>;
 const MoonIcon = () => <Icon>🌙</Icon>;
 const SettingsIcon = () => <Icon>⚙️</Icon>;
-const UnderDevelopmentIcon = () => <Icon>🚧</Icon>;
 
 // --- API SETUP ---
 let ai: GoogleGenAI | null = null;
@@ -75,7 +76,7 @@ const themedStyles = {
         title: "text-primary-700 dark:text-primary-400"
     },
     button: {
-        primary: "bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 disabled:bg-primary-300",
+        primary: "bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 disabled:bg-primary-300 disabled:cursor-not-allowed",
         secondary: "bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200",
         accent: "text-primary-600 dark:text-primary-400 hover:underline"
     },
@@ -90,9 +91,17 @@ const themedStyles = {
 };
 
 // --- HELPER COMPONENTS ---
-const Spinner = () => (
-  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-);
+const Spinner = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+    const sizeClasses = {
+        sm: 'h-4 w-4 border-2',
+        md: 'h-6 w-6 border-b-2',
+        lg: 'h-8 w-8 border-b-4'
+    };
+    return (
+      <div className={`animate-spin rounded-full ${sizeClasses[size]} border-white`}></div>
+    );
+};
+
 
 const ToolButton = ({ label, icon, onClick, isActive, ariaLabel }) => (
   <button
@@ -156,11 +165,6 @@ const ChatComponent = ({ toolId, history, onHistoryChange, systemInstruction, pl
     const [error, setError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // FIX: The Chat instance is stateful and manages its own history.
-    // It should be re-created when switching tools (identified by `toolId`)
-    // to load the correct conversation history and system instructions.
-    // Attempting to manually set the private `history` property is incorrect
-    // and was causing an error.
     useEffect(() => {
         if (!ai) return;
         chatRef.current = ai.chats.create({
@@ -168,7 +172,7 @@ const ChatComponent = ({ toolId, history, onHistoryChange, systemInstruction, pl
             history: history,
             config: { systemInstruction: systemInstruction }
         });
-    }, [toolId]);
+    }, [toolId, systemInstruction]); // Recreate chat if tool or systemInstruction changes
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -190,13 +194,13 @@ const ChatComponent = ({ toolId, history, onHistoryChange, systemInstruction, pl
         } catch (err) {
             console.error(err);
             setError('عذراً، حدث خطأ أثناء التواصل مع الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.');
-            onHistoryChange(newHistory); // Keep user message even on error
+            // Don't remove user message on error
         } finally {
             setIsLoading(false);
         }
     };
     
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSendMessage();
@@ -210,7 +214,7 @@ const ChatComponent = ({ toolId, history, onHistoryChange, systemInstruction, pl
                     {history.map((msg, index) => (
                         <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-xl p-3 my-2 rounded-xl whitespace-pre-wrap ${msg.role === 'user' ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>
-                                {msg.text}
+                               <div dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) }} />
                             </div>
                         </div>
                     ))}
@@ -225,15 +229,15 @@ const ChatComponent = ({ toolId, history, onHistoryChange, systemInstruction, pl
                     <div ref={messagesEndRef} />
                 </div>
                 <div className="flex items-center gap-2">
-                    <input
-                        type="text"
+                    <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={placeholder}
                         disabled={isLoading}
-                        className={themedStyles.input.base}
+                        className={`${themedStyles.input.base} resize-none`}
                         aria-label="chat input"
+                        rows={1}
                     />
                     <button onClick={handleSendMessage} disabled={isLoading || !input.trim()} className={themedStyles.button.primary}>
                         {isLoading ? <Spinner /> : 'إرسال'}
@@ -293,24 +297,122 @@ const QuranExpert = () => {
 };
 
 const Notes = ({ notes, onUpdate }) => {
-    // Implementation for Notes tool
-    return <ToolContainer title="الملاحظات" icon={<NotesIcon />}><p>هذه الأداة قيد التطوير.</p></ToolContainer>;
+    const [currentNote, setCurrentNote] = useState<{ id: string | null; title: string; content: string }>({ id: null, title: '', content: '' });
+
+    const handleSave = () => {
+        if (!currentNote.title.trim() && !currentNote.content.trim()) return;
+
+        if (currentNote.id) {
+            // Update existing note
+            onUpdate(notes.map(n => n.id === currentNote.id ? { ...n, ...currentNote } : n));
+        } else {
+            // Add new note
+            const newNote: Note = {
+                id: Date.now().toString(),
+                title: currentNote.title,
+                content: currentNote.content,
+                createdAt: new Date().toISOString(),
+            };
+            onUpdate([...notes, newNote]);
+        }
+        setCurrentNote({ id: null, title: '', content: '' }); // Reset form
+    };
+
+    const handleDelete = (id: string) => {
+        onUpdate(notes.filter(n => n.id !== id));
+        if (currentNote.id === id) {
+             setCurrentNote({ id: null, title: '', content: '' });
+        }
+    };
+    
+    return (
+        <ToolContainer title="الملاحظات" icon={<NotesIcon />}>
+             <div className="flex flex-col md:flex-row gap-6 h-[70vh]">
+                <div className="w-full md:w-1/3 flex flex-col">
+                    <button onClick={() => setCurrentNote({ id: null, title: '', content: '' })} className={`${themedStyles.button.secondary} mb-4`}>+ ملاحظة جديدة</button>
+                    <ul className="overflow-y-auto flex-1 border dark:border-gray-600 rounded-lg p-2">
+                        {notes.map(note => (
+                            <li key={note.id} onClick={() => setCurrentNote(note)} className="p-2 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <h4 className="font-bold truncate">{note.title || 'ملاحظة بلا عنوان'}</h4>
+                                <p className="text-sm text-gray-500 truncate">{note.content}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="w-full md:w-2/3 flex flex-col gap-4">
+                    <input
+                        type="text"
+                        placeholder="عنوان الملاحظة"
+                        value={currentNote.title}
+                        onChange={e => setCurrentNote(p => ({ ...p, title: e.target.value }))}
+                        className={themedStyles.input.base}
+                    />
+                    <textarea
+                        placeholder="اكتب ملاحظتك هنا..."
+                        value={currentNote.content}
+                        onChange={e => setCurrentNote(p => ({ ...p, content: e.target.value }))}
+                        className={`${themedStyles.input.base} flex-1 resize-none`}
+                    />
+                    <div className="flex gap-2">
+                        <button onClick={handleSave} className={`${themedStyles.button.primary} flex-1`}>{currentNote.id ? 'حفظ التعديلات' : 'حفظ الملاحظة'}</button>
+                        {currentNote.id && <button onClick={() => handleDelete(currentNote.id!)} className={`bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg`}>حذف</button>}
+                    </div>
+                </div>
+            </div>
+        </ToolContainer>
+    );
 };
 
 const Reminders = ({ reminders, onUpdate }) => {
-    // Implementation for Reminders tool
-    return <ToolContainer title="التذكيرات" icon={<RemindersIcon />}><p>هذه الأداة قيد التطوير.</p></ToolContainer>;
+    // Basic implementation for Reminders.
+    const [text, setText] = useState('');
+    const handleAdd = () => {
+        if (!text.trim()) return;
+        const newReminder: Reminder = { id: Date.now().toString(), text, recurrence: 'none', createdAt: new Date().toISOString() };
+        onUpdate([...reminders, newReminder]);
+        setText('');
+    };
+    const handleDelete = (id: string) => {
+        onUpdate(reminders.filter(r => r.id !== id));
+    };
+
+    return (
+        <ToolContainer title="التذكيرات" icon={<RemindersIcon />}>
+            <div className="flex gap-2 mb-4">
+                <input 
+                    type="text" 
+                    value={text} 
+                    onChange={e => setText(e.target.value)} 
+                    placeholder="تذكير جديد..." 
+                    className={themedStyles.input.base}
+                />
+                <button onClick={handleAdd} className={themedStyles.button.primary}>إضافة</button>
+            </div>
+            <ul className="space-y-2">
+                {reminders.map(reminder => (
+                    <li key={reminder.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span>{reminder.text}</span>
+                        <button onClick={() => handleDelete(reminder.id)} className="text-red-500 hover:text-red-700">X</button>
+                    </li>
+                ))}
+            </ul>
+        </ToolContainer>
+    );
 };
 
+
 const ImageToPdf = () => {
-    const [images, setImages] = useState<string[]>([]);
+    const [images, setImages] = useState<{ url: string; file: File }[]>([]);
     const [isConverting, setIsConverting] = useState(false);
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             const files = Array.from(event.target.files);
-            const imageUrls = files.map(file => URL.createObjectURL(file));
-            setImages(prev => [...prev, ...imageUrls]);
+            const newImages = files.map(file => ({
+                url: URL.createObjectURL(file),
+                file: file
+            }));
+            setImages(prev => [...prev, ...newImages]);
         }
     };
 
@@ -320,23 +422,40 @@ const ImageToPdf = () => {
         const pdf = new jsPDF();
         let processedImages = 0;
 
-        images.forEach((imageUrl, index) => {
-            const img = new Image();
-            img.src = imageUrl;
-            img.onload = () => {
-                const imgProps = pdf.getImageProperties(img);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                if (index > 0) {
-                    pdf.addPage();
-                }
-                pdf.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                processedImages++;
-                if (processedImages === images.length) {
-                    pdf.save('moria-ai-converted.pdf');
-                    setIsConverting(false);
-                    setImages([]);
-                }
+        images.forEach((image, index) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(image.file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result as string;
+                img.onload = () => {
+                    const imgProps = pdf.getImageProperties(img);
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                     let heightLeft = pdfHeight;
+                    let position = 0;
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+
+                    if (index > 0) {
+                        pdf.addPage();
+                    }
+                    pdf.addImage(img, 'JPEG', 0, position, pdfWidth, pdfHeight);
+                    heightLeft -= pageHeight;
+                    
+                    while (heightLeft > 0) {
+                        position = heightLeft - pdfHeight;
+                        pdf.addPage();
+                        pdf.addImage(img, 'JPEG', 0, position, pdfWidth, pdfHeight);
+                        heightLeft -= pageHeight;
+                    }
+
+                    processedImages++;
+                    if (processedImages === images.length) {
+                        pdf.save('moria-ai-converted.pdf');
+                        setIsConverting(false);
+                        setImages([]);
+                    }
+                };
             };
         });
     };
@@ -350,8 +469,8 @@ const ImageToPdf = () => {
                 </label>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 min-h-[100px] p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                {images.map((src, index) => (
-                    <img key={index} src={src} alt={`upload-preview-${index}`} className="w-full h-auto object-cover rounded-md" />
+                {images.map((img, index) => (
+                    <img key={index} src={img.url} alt={`upload-preview-${index}`} className="w-full h-auto object-cover rounded-md" />
                 ))}
             </div>
             <button onClick={convertToPdf} disabled={images.length === 0 || isConverting} className={themedStyles.button.primary}>
@@ -361,15 +480,138 @@ const ImageToPdf = () => {
     );
 };
 
-const UnderDevelopmentTool = ({ title, icon }) => (
-    <ToolContainer title={title} icon={icon}>
-        <div className="text-center py-10">
-            <div className="text-6xl mb-4"><UnderDevelopmentIcon /></div>
-            <h3 className="text-2xl font-bold mb-2">هذه الأداة قيد التطوير</h3>
-            <p className="text-gray-600 dark:text-gray-300">نحن نعمل بجد لإطلاقها قريباً. شكراً لصبرك!</p>
-        </div>
-    </ToolContainer>
-);
+const AIArtist = () => {
+    const [prompt, setPrompt] = useState('');
+    const [image, setImage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const generateImage = async () => {
+        if (!prompt || !ai) return;
+        setIsLoading(true);
+        setError('');
+        setImage(null);
+        try {
+            const response = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: prompt,
+                 config: { numberOfImages: 1 },
+            });
+            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+            const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+            setImage(imageUrl);
+        } catch (e) {
+            console.error(e);
+            setError('فشل إنشاء الصورة. حاول مرة أخرى.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    return (
+        <ToolContainer title="فنان الذكاء الاصطناعي" icon={<AIArtistIcon />}>
+            <div className="flex flex-col gap-4">
+                <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="صف الصورة التي تريد إنشاءها. مثال: روبوت يحمل لوح تزلج أحمر"
+                    className={`${themedStyles.input.base} min-h-[100px]`}
+                />
+                <button onClick={generateImage} disabled={isLoading || !prompt} className={themedStyles.button.primary}>
+                    {isLoading ? <Spinner /> : 'إنشاء صورة'}
+                </button>
+                 {error && <p className="text-red-500">{error}</p>}
+                {isLoading && <div className="text-center p-4">جاري إنشاء الصورة، قد يستغرق هذا بعض الوقت...</div>}
+                {image && (
+                    <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <img src={image} alt="Generated art" className="max-w-full mx-auto rounded-md" />
+                    </div>
+                )}
+            </div>
+        </ToolContainer>
+    );
+}
+
+const AIImageEditor = () => {
+    const [image, setImage] = useState<{ b64: string, mime: string } | null>(null);
+    const [prompt, setPrompt] = useState('');
+    const [editedImage, setEditedImage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const b64 = (reader.result as string).split(',')[1];
+            setImage({ b64, mime: file.type });
+            setEditedImage(null);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const editImage = async () => {
+        if (!image || !prompt || !ai) return;
+        setIsLoading(true);
+        setError('');
+        try {
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash-image-preview',
+                contents: {
+                    parts: [
+                        { inlineData: { data: image.b64, mimeType: image.mime } },
+                        { text: prompt },
+                    ],
+                },
+                config: {
+                    responseModalities: [Modality.IMAGE, Modality.TEXT],
+                },
+            });
+            for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData) {
+                    const base64ImageBytes: string = part.inlineData.data;
+                    const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                    setEditedImage(imageUrl);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            setError('فشل تعديل الصورة. حاول مرة أخرى.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    return (
+        <ToolContainer title="محرر الصور الذكي" icon={<AIImageEditorIcon />}>
+            <div className="flex flex-col gap-4">
+                <input type="file" accept="image/*" onChange={handleImageUpload} className={`${themedStyles.input.base} p-2`} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                        <h3 className="font-bold mb-2">الأصلية</h3>
+                        {image ? <img src={`data:${image.mime};base64,${image.b64}`} className="w-full h-auto rounded" /> : <div className="text-center p-8">اختر صورة للبدء</div>}
+                    </div>
+                     <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                        <h3 className="font-bold mb-2">المعدلة</h3>
+                        {isLoading ? <div className="flex justify-center items-center h-full"><Spinner size="lg"/></div> : editedImage ? <img src={editedImage} className="w-full h-auto rounded" /> : <div className="text-center p-8">ستظهر النتيجة هنا</div>}
+                    </div>
+                </div>
+                <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="صف التعديل الذي تريده. مثال: أضف قبعة عيد ميلاد على القطة"
+                    className={`${themedStyles.input.base} min-h-[80px]`}
+                    disabled={!image}
+                />
+                <button onClick={editImage} disabled={isLoading || !prompt || !image} className={themedStyles.button.primary}>
+                    {isLoading ? 'جاري التعديل...' : 'تعديل الصورة'}
+                </button>
+                 {error && <p className="text-red-500">{error}</p>}
+            </div>
+        </ToolContainer>
+    );
+};
 
 // --- MAIN APP COMPONENT ---
 const App = () => {
@@ -377,25 +619,38 @@ const App = () => {
   const [userData, setUserData] = useState<UserData>(() => {
         try {
           const savedData = localStorage.getItem('moriaAiUserData');
+          const defaultData = {
+            notes: [], reminders: [],
+            cvData: { fullName: '', email: '', phone: '', address: '', summary: '', experience: [{title: '', company: '', period: '', responsibilities: ''}], education: [{degree: '', institution: '', period: ''}], skills: [''] },
+            simulatedBalance: 10000, tradeHistory: [], 
+            // Init all chat histories
+            chatHistory: [], chatProHistory: [], mentalHealthHistory: [], qiyasExpertHistory: [], textCorrectorHistory: [],
+            letterGeneratorHistory: [], deviceExpertHistory: [], productExpertHistory: [], touristGuideHistory: [],
+            restaurantExpertHistory: [], securityExpertHistory: [], governmentProtocolExpertHistory: [],
+            internetExpertHistory: [], cybersecurityOpsHistory: [], movieExpertHistory: [], spreadsheetExpertHistory: [],
+            // Other tool data
+            spreadsheetData: Array(20).fill(0).map(() => Array(10).fill({ rawValue: '', value: '', style: {} })),
+            communityUsername: null, hasAcceptedTerms: false, liveStreams: [], tournaments: [],
+          };
+
           if (savedData) {
             const parsedData = JSON.parse(savedData);
-            // Default initializations for safety
-            parsedData.chatHistory = parsedData.chatHistory || [];
-            parsedData.chatProHistory = parsedData.chatProHistory || [];
-            parsedData.mentalHealthHistory = parsedData.mentalHealthHistory || [];
-            parsedData.qiyasExpertHistory = parsedData.qiyasExpertHistory || [];
-            return parsedData;
+            return { ...defaultData, ...parsedData };
           }
+          return defaultData;
         } catch (error) {
           console.error("Failed to load data from localStorage", error);
         }
-        return {
+        return { // Fallback default data
             notes: [], reminders: [],
             cvData: { fullName: '', email: '', phone: '', address: '', summary: '', experience: [{title: '', company: '', period: '', responsibilities: ''}], education: [{degree: '', institution: '', period: ''}], skills: [''] },
-            simulatedBalance: 10000, tradeHistory: [], chatHistory: [], chatProHistory: [],
-            spreadsheetData: Array(20).fill(Array(10).fill({ rawValue: '', value: '', style: {} })),
+            simulatedBalance: 10000, tradeHistory: [], 
+            chatHistory: [], chatProHistory: [], mentalHealthHistory: [], qiyasExpertHistory: [], textCorrectorHistory: [],
+            letterGeneratorHistory: [], deviceExpertHistory: [], productExpertHistory: [], touristGuideHistory: [],
+            restaurantExpertHistory: [], securityExpertHistory: [], governmentProtocolExpertHistory: [],
+            internetExpertHistory: [], cybersecurityOpsHistory: [], movieExpertHistory: [], spreadsheetExpertHistory: [],
+            spreadsheetData: Array(20).fill(0).map(() => Array(10).fill({ rawValue: '', value: '', style: {} })),
             communityUsername: null, hasAcceptedTerms: false, liveStreams: [], tournaments: [],
-            mentalHealthHistory: [], qiyasExpertHistory: [],
         };
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -439,70 +694,47 @@ const App = () => {
     setUserData(prev => ({ ...prev, ...updatedData }));
   };
   
-    const tools: { id: TrackableTool; label: string; icon: JSX.Element, description: string }[] = [
-    { id: 'aiQiyasExpert', label: 'خبير قياس (قدرات وتحصيلي)', icon: <AIQiyasExpertIcon />, description: 'مساعدك الذكي للاستعداد لاختبارات القدرات والتحصيلي.' },
-    { id: 'aiMentalHealthGuide', label: 'مرشدك للصحة النفسية', icon: <AIMentalHealthGuideIcon />, description: 'مساحة آمنة للحصول على نصائح لتطوير الذات والتغلب على المشاعر السلبية.' },
-    { id: 'aiChat', label: 'شات موريا AI', icon: <AIChatIcon />, description: 'مساعدك الذكي، متصل ببحث جوجل لأحدث المعلومات.' },
-    { id: 'aiChatPro', label: 'شات موريا Pro', icon: <AIChatProIcon />, description: 'قدرات تحليلية وإبداعية متقدمة للمهام المعقدة.' },
-    { id: 'quranExpert', label: 'باحث القرآن الكريم', icon: <QuranExpertIcon />, description: 'تصفح القرآن الكريم مع التفسير الميسر.' },
-    { id: 'notes', label: 'الملاحظات', icon: <NotesIcon />, description: 'دوّن أفكارك وملاحظاتك.' },
-    { id: 'reminders', label: 'التذكيرات', icon: <RemindersIcon />, description: 'لا تنسَ مهامك ومواعيدك المهمة مرة أخرى.' },
-    { id: 'imageToPdf', label: 'تحويل الصور إلى PDF', icon: <ImageToPdfIcon />, description: 'اجمع صورك في ملف PDF واحد بسهولة.' },
-    { id: 'aiTournamentOrganizer', label: 'منظم بطولات الألعاب', icon: <AITournamentOrganizerIcon />, description: 'أنشئ وأدر بطولات ألعاب مع دردشة ذكاء اصطناعي.' },
-    { id: 'aiLiveStreamManager', label: 'مدير البث المباشر', icon: <AILiveStreamManagerIcon />, description: 'أنشئ وأدر بثوثًا مباشرة مع مشرف ذكاء اصطناعي.'},
-    { id: 'aiCommunityChat', label: 'مجتمع موريا', icon: <AICommunityChatIcon />, description: 'تواصل وتفاعل في مجتمع آمن ومدعوم بالذكاء الاصطناعي.' },
-    { id: 'aiCybersecurityOps', label: 'مركز عمليات الأمن السيبراني', icon: <AICybersecurityOpsIcon />, description: 'تحليل الثغرات، كشف التصيد، والحصول على إحاطات أمنية.' },
-    { id: 'ai3DModeler', label: 'مصمم النماذج ثلاثية الأبعاد', icon: <AI3DModelerIcon />, description: 'أنشئ نماذج ثلاثية الأبعاد من خلال وصف نصي بسيط.' },
-    { id: 'aiSecurityExpert', label: 'خبير الأمان الرقمي', icon: <AISecurityExpertIcon />, description: 'أدوات متقدمة لحماية بياناتك.' },
-    { id: 'aiInternetExpert', label: 'خبير تسريع وأمان الإنترنت', icon: <AIInternetExpertIcon />, description: 'احصل على توصيات ذكية لتسريع اتصالك وحمايته.' },
-    { id: 'aiGovernmentProtocolExpert', label: 'خبير البروتوكول الحكومي', icon: <AIGovernmentProtocolIcon />, description: 'احصل على خطة عمل للتواصل مع الجهات الحكومية.'},
-    { id: 'aiSpreadsheetExpert', label: 'خبير الجداول الذكي', icon: <AISpreadsheetExpertIcon/>, description: 'جداول بيانات قوية مع مساعد ذكاء اصطناعي.'},
+    const ALL_TOOLS: { id: TrackableTool; label: string; icon: JSX.Element, description: string }[] = [
+        { id: 'aiQiyasExpert', label: 'خبير قياس', icon: <AIQiyasExpertIcon />, description: 'استعد لاختبارات القدرات والتحصيلي.' },
+        { id: 'aiMentalHealthGuide', label: 'مرشد الصحة النفسية', icon: <AIMentalHealthGuideIcon />, description: 'نصائح لتطوير الذات والتغلب على المشاعر السلبية.' },
+        { id: 'aiChat', label: 'شات موريا AI', icon: <AIChatIcon />, description: 'مساعدك الذكي، متصل ببحث جوجل.' },
+        { id: 'aiChatPro', label: 'شات موريا Pro', icon: <AIChatProIcon />, description: 'قدرات تحليلية وإبداعية متقدمة.' },
+        { id: 'quranExpert', label: 'باحث القرآن الكريم', icon: <QuranExpertIcon />, description: 'تصفح القرآن الكريم مع التفسير الميسر.' },
+        { id: 'notes', label: 'الملاحظات', icon: <NotesIcon />, description: 'دوّن أفكارك وملاحظاتك بسهولة.' },
+        { id: 'reminders', label: 'التذكيرات', icon: <RemindersIcon />, description: 'لا تنسَ مهامك ومواعيدك المهمة.' },
+        { id: 'imageToPdf', label: 'صور إلى PDF', icon: <ImageToPdfIcon />, description: 'اجمع صورك في ملف PDF واحد.' },
+        { id: 'aiArtist', label: 'فنان AI', icon: <AIArtistIcon/>, description: 'حوّل النص إلى صور فنية مذهلة.' },
+        { id: 'aiImageEditor', label: 'محرر الصور AI', icon: <AIImageEditorIcon/>, description: 'عدّل صورك باستخدام أوامر نصية بسيطة.' },
+        { id: 'textCorrector', label: 'المصحح اللغوي', icon: <TextCorrectorIcon/>, description: 'صحح الأخطاء الإملائية والنحوية في نصوصك.' },
+        { id: 'documentAnalyzer', label: 'محلل المستندات', icon: <DocumentAnalyzerIcon/>, description: 'استخرج المعلومات ولخّص المستندات النصية.'},
+        { id: 'speechToText', label: 'تحويل الكلام إلى نص', icon: <SpeechToTextIcon/>, description: 'حوّل تسجيلاتك الصوتية إلى نص مكتوب.'},
+        { id: 'aiSpreadsheetExpert', label: 'خبير الجداول', icon: <AISpreadsheetExpertIcon />, description: 'جداول بيانات مع مساعد ذكاء اصطناعي.'},
+        { id: 'aiCvGenerator', label: 'منشئ السيرة الذاتية', icon: <AICvGeneratorIcon />, description: 'أنشئ سيرة ذاتية احترافية بمساعدة AI.'},
+        { id: 'aiPresentationGenerator', label: 'منشئ العروض التقديمية', icon: <AIPresentationGeneratorIcon />, description: 'أنشئ هيكل عرض تقديمي حول أي موضوع.'},
+        { id: 'aiLetterGenerator', label: 'كاتب الخطابات', icon: <AILetterGeneratorIcon />, description: 'احصل على مساعدة في كتابة الخطابات الرسمية.'},
+        { id: 'aiSecurityExpert', label: 'خبير الأمان الرقمي', icon: <AISecurityExpertIcon />, description: 'نصائح لحماية بياناتك على الإنترنت.' },
+        { id: 'aiTournamentOrganizer', label: 'منظم البطولات', icon: <AITournamentOrganizerIcon />, description: 'أنشئ وأدر بطولات ألعاب مع تعليق ذكي.' },
+        { id: 'aiLiveStreamManager', label: 'مدير البث المباشر', icon: <AILiveStreamManagerIcon />, description: 'محاكاة لإدارة بث مباشر مع مشرف AI.'},
+        { id: 'aiCommunityChat', label: 'مجتمع موريا', icon: <AICommunityChatIcon />, description: 'تفاعل في مجتمع آمن مع شخصيات AI.' },
+        { id: 'aiCybersecurityOps', label: 'عمليات الأمن السيبراني', icon: <AICybersecurityOpsIcon />, description: 'تحليل أمني وإحاطات من مركز عمليات AI.' },
+        { id: 'ai3DModeler', label: 'مصمم النماذج 3D', icon: <AI3DModelerIcon />, description: 'أنشئ وصفًا لنماذج 3D من خلال نص.' },
     ];
+
 
   const renderActiveTool = () => {
     switch (activeTool) {
       case 'welcome':
-        return <WelcomeScreen tools={tools} setActiveTool={setActiveTool} />;
+        return <WelcomeScreen tools={ALL_TOOLS} setActiveTool={setActiveTool} />;
       case 'aiChat':
-        return <ChatComponent
-            toolId="aiChat"
-            history={userData.chatHistory}
-            onHistoryChange={(newHistory) => handleUserDataUpdate({ chatHistory: newHistory })}
-            systemInstruction="You are Moria AI, a helpful and friendly assistant connected to Google Search for up-to-date information. Be concise and helpful. Answer in Arabic."
-            placeholder="اسأل عن أي شيء..."
-            title="شات موريا AI"
-            icon={<AIChatIcon />}
-        />;
+        return <ChatComponent toolId="aiChat" history={userData.chatHistory} onHistoryChange={(h) => handleUserDataUpdate({ chatHistory: h })} systemInstruction="أنت موريا AI، مساعد ودود ومتعاون. أجب باللغة العربية." placeholder="اسأل عن أي شيء..." title="شات موريا AI" icon={<AIChatIcon />}/>;
       case 'aiChatPro':
-        return <ChatComponent
-            toolId="aiChatPro"
-            history={userData.chatProHistory}
-            onHistoryChange={(newHistory) => handleUserDataUpdate({ chatProHistory: newHistory })}
-            systemInstruction="You are Moria AI Pro, a powerful AI assistant with advanced analytical and creative capabilities. Provide detailed, expert-level responses. Answer in Arabic."
-            placeholder="اطرح سؤالاً معقداً أو اطلب مهمة إبداعية..."
-            title="شات موريا Pro"
-            icon={<AIChatProIcon />}
-        />;
+        return <ChatComponent toolId="aiChatPro" history={userData.chatProHistory} onHistoryChange={(h) => handleUserDataUpdate({ chatProHistory: h })} systemInstruction="أنت موريا AI Pro، مساعد ذكاء اصطناعي فائق القدرات للمهام المعقدة والتحليلية والإبداعية. قدم إجابات مفصلة ومتعمقة. أجب باللغة العربية." placeholder="اطرح سؤالاً معقداً أو اطلب مهمة إبداعية..." title="شات موريا Pro" icon={<AIChatProIcon />}/>;
       case 'aiQiyasExpert':
-         return <ChatComponent
-            toolId="aiQiyasExpert"
-            history={userData.qiyasExpertHistory}
-            onHistoryChange={(newHistory) => handleUserDataUpdate({ qiyasExpertHistory: newHistory })}
-            systemInstruction="أنت خبير متخصص في اختبارات القياس السعودية (القدرات والتحصيلي). مهمتك هي شرح المفاهيم، تقديم استراتيجيات للحل، وتوليد أسئلة تدريبية مع شرح الإجابات. كن دقيقاً ومشجعاً."
-            placeholder="اكتب سؤالك عن القدرات أو التحصيلي..."
-            title="خبير قياس"
-            icon={<AIQiyasExpertIcon />}
-        />;
+         return <ChatComponent toolId="aiQiyasExpert" history={userData.qiyasExpertHistory} onHistoryChange={(h) => handleUserDataUpdate({ qiyasExpertHistory: h })} systemInstruction="أنت خبير متخصص في اختبارات القياس السعودية (القدرات والتحصيلي). مهمتك هي شرح المفاهيم، تقديم استراتيجيات للحل، وتوليد أسئلة تدريبية مع شرح الإجابات. كن دقيقاً ومشجعاً." placeholder="اكتب سؤالك عن القدرات أو التحصيلي..." title="خبير قياس" icon={<AIQiyasExpertIcon />}/>;
       case 'aiMentalHealthGuide':
-          return <ChatComponent
-            toolId="aiMentalHealthGuide"
-            history={userData.mentalHealthHistory}
-            onHistoryChange={(newHistory) => handleUserDataUpdate({ mentalHealthHistory: newHistory })}
-            systemInstruction="أنت مرشد للصحة النفسية وتطوير الذات. قدم نصائح عملية وداعمة بلغة إيجابية ومتعاطفة. لا تقدم تشخيصاً طبياً، وركز على استراتيجيات التأقلم الإيجابية، والوعي الذاتي، وتقنيات الاسترخاء. اذكر دائماً أنك لست بديلاً عن الطبيب النفسي المختص."
-            placeholder="كيف يمكنني مساعدتك اليوم؟"
-            title="مرشدك للصحة النفسية"
-            icon={<AIMentalHealthGuideIcon />}
-        />;
+          return <ChatComponent toolId="aiMentalHealthGuide" history={userData.mentalHealthHistory} onHistoryChange={(h) => handleUserDataUpdate({ mentalHealthHistory: h })} systemInstruction="أنت مرشد للصحة النفسية وتطوير الذات. قدم نصائح عملية وداعمة بلغة إيجابية ومتعاطفة. لا تقدم تشخيصاً طبياً، وركز على استراتيجيات التأقلم الإيجابية، والوعي الذاتي، وتقنيات الاسترخاء. اذكر دائماً أنك لست بديلاً عن الطبيب النفسي المختص." placeholder="كيف يمكنني مساعدتك اليوم؟" title="مرشدك للصحة النفسية" icon={<AIMentalHealthGuideIcon />}/>;
+      case 'textCorrector':
+          return <ChatComponent toolId="textCorrector" history={userData.textCorrectorHistory} onHistoryChange={(h) => handleUserDataUpdate({ textCorrectorHistory: h })} systemInstruction="أنت مصحح لغوي خبير باللغة العربية. قم بتصحيح الأخطاء الإملائية والنحوية في النص الذي يقدمه المستخدم، وقدم النص المصحح فقط دون أي تعليقات إضافية." placeholder="أدخل النص لتصحيحه..." title="المصحح اللغوي" icon={<TextCorrectorIcon />}/>;
       case 'quranExpert':
         return <QuranExpert />;
       case 'notes':
@@ -511,35 +743,39 @@ const App = () => {
         return <Reminders reminders={userData.reminders} onUpdate={(reminders) => handleUserDataUpdate({ reminders })} />;
       case 'imageToPdf':
         return <ImageToPdf />;
+      case 'aiArtist':
+        return <AIArtist />;
+      case 'aiImageEditor':
+        return <AIImageEditor />;
       default:
-        const tool = tools.find(t => t.id === activeTool);
-        return tool ? <UnderDevelopmentTool title={tool.label} icon={tool.icon} /> : <p>الأداة غير موجودة</p>;
+        const tool = ALL_TOOLS.find(t => t.id === activeTool);
+        // Fallback for tools that are chat-based but not explicitly listed above
+        const chatToolMap = {
+            'aiLetterGenerator': { history: userData.letterGeneratorHistory, onHistoryChange: (h) => handleUserDataUpdate({letterGeneratorHistory: h}), systemInstruction: 'أنت مساعد خبير في كتابة الخطابات الرسمية والشخصية. ساعد المستخدم في صياغة خطابه.', placeholder: 'اطلب المساعدة في كتابة خطاب...', title: 'كاتب الخطابات', icon: <AILetterGeneratorIcon />},
+            'aiSecurityExpert': { history: userData.securityExpertHistory, onHistoryChange: (h) => handleUserDataUpdate({securityExpertHistory: h}), systemInstruction: 'أنت خبير في الأمن الرقمي. قدم نصائح واضحة وعملية للمستخدمين حول كيفية حماية بياناتهم وحساباتهم على الإنترنت.', placeholder: 'اسأل عن حماية حساباتك...', title: 'خبير الأمان الرقمي', icon: <AISecurityExpertIcon />},
+            // Add other simple chat tools here
+        };
+        if(chatToolMap[activeTool]){
+            return <ChatComponent toolId={activeTool} {...chatToolMap[activeTool]} />;
+        }
+        
+        return tool ? <ToolContainer title={tool.label} icon={tool.icon}><p>هذه الأداة قيد التطوير.</p></ToolContainer> : <p>الأداة غير موجودة</p>;
     }
   };
 
-  const sidebarTools = [
-     { id: 'aiQiyasExpert', label: 'خبير قياس', icon: <AIQiyasExpertIcon /> },
-     { id: 'aiMentalHealthGuide', label: 'الصحة النفسية', icon: <AIMentalHealthGuideIcon /> },
-     { id: 'aiChat', label: 'شات موريا', icon: <AIChatIcon /> },
-     { id: 'aiChatPro', label: 'شات موريا Pro', icon: <AIChatProIcon /> },
-     { id: 'quranExpert', label: 'باحث القرآن', icon: <QuranExpertIcon /> },
-     { id: 'notes', label: 'الملاحظات', icon: <NotesIcon /> },
-     { id: 'reminders', label: 'التذكيرات', icon: <RemindersIcon /> },
-     { id: 'imageToPdf', label: 'صور إلى PDF', icon: <ImageToPdfIcon /> },
-  ];
 
   return (
     <div className={`flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200`} style={{ fontFamily: 'var(--font-family)' }}>
         {/* Sidebar */}
         <aside className={`bg-white dark:bg-gray-800 shadow-lg fixed md:relative transition-all duration-300 h-full flex flex-col z-20 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 ${isDesktopSidebarCollapsed ? 'w-20' : 'w-64'}`}>
             <div className={`p-4 flex items-center ${isDesktopSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-                {!isDesktopSidebarCollapsed && <h1 className="text-xl font-bold animated-title" onClick={() => setActiveTool('welcome')}>موريا AI</h1>}
+                {!isDesktopSidebarCollapsed && <h1 className="text-xl font-bold animated-title cursor-pointer" onClick={() => setActiveTool('welcome')}>موريا AI</h1>}
                 <button onClick={() => setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed)} className="hidden md:block p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                     {isDesktopSidebarCollapsed ? '›' : '‹'}
                 </button>
             </div>
-            <nav className="flex-1 px-2 py-4">
-                {sidebarTools.map(tool => (
+            <nav className="flex-1 px-2 py-4 overflow-y-auto">
+                {ALL_TOOLS.map(tool => (
                     <ToolButton 
                         key={tool.id} 
                         label={isDesktopSidebarCollapsed ? '' : tool.label} 
@@ -562,9 +798,9 @@ const App = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
+        <main className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto h-screen">
              <header className="flex items-center justify-between mb-4 md:hidden">
-                 <h1 className="text-xl font-bold animated-title" onClick={() => setActiveTool('welcome')}>موريا AI</h1>
+                 <h1 className="text-xl font-bold animated-title cursor-pointer" onClick={() => setActiveTool('welcome')}>موريا AI</h1>
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2">
                     ☰
                 </button>

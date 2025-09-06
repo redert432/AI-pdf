@@ -78,15 +78,31 @@ export interface UserData {
   cvData: CvData;
   simulatedBalance: number;
   tradeHistory: Trade[];
+
+  // Chat Histories
   chatHistory: ChatMessage[];
   chatProHistory: ChatMessage[];
+  mentalHealthHistory: ChatMessage[];
+  qiyasExpertHistory: ChatMessage[];
+  textCorrectorHistory: ChatMessage[];
+  letterGeneratorHistory: ChatMessage[];
+  deviceExpertHistory: ChatMessage[];
+  productExpertHistory: ChatMessage[];
+  touristGuideHistory: ChatMessage[];
+  restaurantExpertHistory: ChatMessage[];
+  securityExpertHistory: ChatMessage[];
+  governmentProtocolExpertHistory: ChatMessage[];
+  internetExpertHistory: ChatMessage[];
+  cybersecurityOpsHistory: ChatMessage[];
+  movieExpertHistory: ChatMessage[];
+  spreadsheetExpertHistory: ChatMessage[];
+  
+  // Other tool data
   spreadsheetData: SpreadsheetData;
   communityUsername: string | null;
   hasAcceptedTerms: boolean;
   liveStreams: LiveStream[];
   tournaments: Tournament[];
-  mentalHealthHistory: ChatMessage[];
-  qiyasExpertHistory: ChatMessage[];
 }
 
 // Notes Tool
